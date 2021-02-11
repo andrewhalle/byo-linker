@@ -63,4 +63,45 @@ impl ElfFile64 {
             .to_string()
         }
     }
+
+    pub fn get_symbol_name(&self, idx: usize) -> String {
+        let symbol_names = self.string_table();
+        unsafe {
+            std::ffi::CStr::from_ptr(
+                &symbol_names.data[idx] as *const u8 as *const std::os::raw::c_char,
+            )
+            .to_str()
+            .expect("could not get string name from string table")
+            .to_string()
+        }
+    }
+
+    pub fn symbol_table(&self) -> &ElfFile64Section {
+        let mut sections = self.sections.iter().filter(|s| s.header.r#type == 0x2);
+
+        // ensure there's only one symbol table
+        let section = sections.next().expect("no symbol table sections");
+        assert!(sections.next().is_none());
+
+        section
+    }
+
+    pub fn string_table(&self) -> &ElfFile64Section {
+        let sections: Vec<(usize, &ElfFile64Section)> = self
+            .sections
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.header.r#type == 0x3)
+            .collect();
+
+        if sections.len() == 1 {
+            sections[0].1
+        } else {
+            sections
+                .iter()
+                .find(|(idx, _)| *idx != self.header.shstrndx as usize)
+                .expect("no string table that is not the section name table")
+                .1
+        }
+    }
 }

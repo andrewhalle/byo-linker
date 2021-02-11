@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 use ld_rs::parse::ElfFile64Parser;
+use ld_rs::symbol::SymbolIterator;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "basic")]
@@ -36,8 +37,16 @@ fn main() {
         }
     };
 
-    println!("Section names:");
+    println!("\nSection names:");
     for i in 0..elf.sections.len() {
         println!("{}", elf.get_section_name(i));
+    }
+
+    println!("\nSymbols:");
+    let symbols = SymbolIterator {
+        data: &elf.symbol_table().data[..],
+    };
+    for symbol in symbols {
+        println!("{}", elf.get_symbol_name(symbol.name as usize));
     }
 }
