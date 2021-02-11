@@ -1,4 +1,4 @@
-use super::elf::{ElfFile64, ElfFile64Header, ElfFile64SectionHeader};
+use super::elf::{ElfFile64, ElfFile64Header, ElfFile64Section, ElfFile64SectionHeader};
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use std::io::Read;
 
@@ -25,11 +25,11 @@ impl<R: Read> ElfFile64Parser<R> {
         }
     }
 
-    fn skip(&mut self, len: usize) -> ParseResult<()> {
+    fn read_bytes(&mut self, len: usize) -> ParseResult<Vec<u8>> {
         let mut buf = vec![0; len];
         self.data.read_exact(&mut buf)?;
 
-        Ok(())
+        Ok(buf)
     }
 
     fn read_u16(&mut self) -> ParseResult<u16> {
@@ -174,16 +174,31 @@ impl<R: Read> ElfFile64Parser<R> {
         self.check_magic()?;
         let header = self.parse_header()?;
         let program_headers = Vec::new();
-        self.skip(header.shoff - header.ehsize as usize)?;
-        let mut section_headers = Vec::new();
+
+        let section_data = self.read_bytes(header.shoff - header.ehsize as usize)?;
+
+        let get_data_at_offset = |offset: usize, len: usize| {
+            if offset == 0 && len == 0 {
+                Vec::new()
+            } else {
+                let base = offset - header.ehsize as usize;
+                (&section_data[base..(base + len)]).to_vec()
+            }
+        };
+
+        let mut sections = Vec::new();
         for _ in 0..header.shnum {
-            section_headers.push(self.parse_section_header()?);
+            let header = self.parse_section_header()?;
+            sections.push(ElfFile64Section {
+                data: get_data_at_offset(header.offset, header.size),
+                header,
+            });
         }
 
         Ok(ElfFile64 {
             header,
             program_headers,
-            section_headers,
+            sections,
         })
     }
 }

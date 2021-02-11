@@ -34,11 +34,33 @@ pub struct ElfFile64SectionHeader {
 }
 
 #[derive(Debug)]
+pub struct ElfFile64Section {
+    pub header: ElfFile64SectionHeader,
+    pub data: Vec<u8>,
+}
+
+#[derive(Debug)]
 pub struct ElfFile64ProgramHeader;
 
 #[derive(Debug)]
 pub struct ElfFile64 {
     pub header: ElfFile64Header,
     pub program_headers: Vec<ElfFile64ProgramHeader>,
-    pub section_headers: Vec<ElfFile64SectionHeader>,
+    pub sections: Vec<ElfFile64Section>,
+}
+
+impl ElfFile64 {
+    pub fn get_section_name(&self, idx: usize) -> String {
+        let section_names = &self.sections[self.header.shstrndx as usize];
+        let section = &self.sections[idx];
+        unsafe {
+            std::ffi::CStr::from_ptr(
+                &section_names.data[section.header.name as usize] as *const u8
+                    as *const std::os::raw::c_char,
+            )
+            .to_str()
+            .expect("could not get string name from string table")
+            .to_string()
+        }
+    }
 }

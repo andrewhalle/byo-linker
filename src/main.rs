@@ -36,5 +36,8 @@ fn main() {
         }
     };
 
-    println!("{:#?}", elf);
+    println!("Section names:");
+    for i in 0..elf.sections.len() {
+        println!("{}", elf.get_section_name(i));
+    }
 }
