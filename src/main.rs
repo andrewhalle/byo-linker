@@ -3,14 +3,14 @@ use std::io::Read;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
+use ld_rs::elf::ElfFile64;
 use ld_rs::parse::ElfFile64Parser;
-use ld_rs::symbol::SymbolIterator;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "basic")]
 struct Opt {
-    #[structopt(short, long, parse(from_os_str))]
-    filename: PathBuf,
+    #[structopt(name = "FILE", parse(from_os_str))]
+    filenames: Vec<PathBuf>,
 }
 
 fn generic_error(action: &str) -> ! {
@@ -21,32 +21,28 @@ fn generic_error(action: &str) -> ! {
 fn main() {
     let opt = Opt::from_args();
 
-    let mut file = File::open(opt.filename).unwrap_or_else(|_| generic_error("opening"));
-    let mut buf = Vec::new();
-    file.read_to_end(&mut buf)
-        .unwrap_or_else(|_| generic_error("reading"));
+    let elfs: Vec<ElfFile64> = opt
+        .filenames
+        .iter()
+        .map(|f| {
+            let mut buf = Vec::new();
+            let mut file = File::open(f).unwrap_or_else(|_| generic_error("opening"));
+            file.read_to_end(&mut buf)
+                .unwrap_or_else(|_| generic_error("reading"));
 
-    let elf = match ElfFile64Parser::new(&buf[..]).parse() {
-        Ok(elf) => {
-            println!("That is an ELF file!");
+            let elf = match ElfFile64Parser::new(&buf[..]).parse(f.to_str().unwrap().to_string()) {
+                Ok(elf) => elf,
+                Err(_) => {
+                    eprintln!("That is not an ELF file!");
+                    std::process::exit(1);
+                }
+            };
+
             elf
-        }
-        Err(_) => {
-            eprintln!("That is not an ELF file!");
-            std::process::exit(1);
-        }
-    };
+        })
+        .collect();
 
-    println!("\nSection names:");
-    for i in 0..elf.sections.len() {
-        println!("{}", elf.get_section_name(i));
-    }
+    let result = ld_rs::link(elfs);
 
-    println!("\nSymbols:");
-    let symbols = SymbolIterator {
-        data: &elf.symbol_table().data[..],
-    };
-    for symbol in symbols {
-        println!("{}", elf.get_symbol_name(symbol.name as usize));
-    }
+    println!("{:?}", result);
 }

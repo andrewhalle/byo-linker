@@ -170,7 +170,7 @@ impl<R: Read> ElfFile64Parser<R> {
         })
     }
 
-    pub fn parse(mut self) -> ParseResult<ElfFile64> {
+    pub fn parse(mut self, filename: String) -> ParseResult<ElfFile64> {
         self.check_magic()?;
         let header = self.parse_header()?;
         let program_headers = Vec::new();
@@ -196,6 +196,7 @@ impl<R: Read> ElfFile64Parser<R> {
         }
 
         Ok(ElfFile64 {
+            filename: Some(filename),
             header,
             program_headers,
             sections,

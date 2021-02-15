@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct ElfFile64Header {
     pub data: u8,
     pub version: u8,
@@ -42,8 +42,9 @@ pub struct ElfFile64Section {
 #[derive(Debug)]
 pub struct ElfFile64ProgramHeader;
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct ElfFile64 {
+    pub filename: Option<String>,
     pub header: ElfFile64Header,
     pub program_headers: Vec<ElfFile64ProgramHeader>,
     pub sections: Vec<ElfFile64Section>,
