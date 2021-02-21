@@ -143,9 +143,8 @@ impl std::fmt::Display for ElfFile64 {
         for section in self.sections.iter() {
             writeln!(
                 f,
-                "ElfFile Section: {}  name: {}",
+                "ElfFile Section: {}",
                 self.get_string(self.header.shstrndx as usize, section.header.name as usize),
-                section.header.name
             )?
         }
 
