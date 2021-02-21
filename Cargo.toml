@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 structopt = "0.3.21"
 byteorder = "1.4.2"
+hex = "0.4.2"

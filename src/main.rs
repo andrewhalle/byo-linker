@@ -44,5 +44,8 @@ fn main() {
 
     let result = ld_rs::link(elfs);
 
-    println!("{:?}", result);
+    println!("{}", result);
+
+    println!("{}", &result.sections[2].header.size);
+    println!("{}", hex::encode(&result.sections[2].data));
 }

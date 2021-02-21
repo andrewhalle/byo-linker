@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Default, Debug)]
 pub struct ElfFile64Header {
     pub data: u8,
@@ -19,7 +21,7 @@ pub struct ElfFile64Header {
     pub shstrndx: u16,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ElfFile64SectionHeader {
     pub name: u32,
     pub r#type: u32,
@@ -33,7 +35,7 @@ pub struct ElfFile64SectionHeader {
     pub entsize: usize,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ElfFile64Section {
     pub header: ElfFile64SectionHeader,
     pub data: Vec<u8>,
@@ -61,6 +63,18 @@ impl ElfFile64 {
             )
             .to_str()
             .expect("could not get string name from string table")
+            .to_string()
+        }
+    }
+
+    pub fn get_string(&self, string_table_index: usize, string_idx: usize) -> String {
+        unsafe {
+            std::ffi::CStr::from_ptr(
+                &self.sections[string_table_index].data[string_idx] as *const u8
+                    as *const std::os::raw::c_char,
+            )
+            .to_str()
+            .expect("could not get string from string table")
             .to_string()
         }
     }
@@ -104,5 +118,36 @@ impl ElfFile64 {
                 .expect("no string table that is not the section name table")
                 .1
         }
+    }
+
+    pub fn section_name_map(&self) -> HashMap<String, usize> {
+        let mut result = HashMap::new();
+
+        for (idx, section) in self.sections.iter().enumerate() {
+            result.insert(
+                self.get_string(self.header.shstrndx as usize, section.header.name as usize),
+                idx,
+            );
+        }
+
+        result
+    }
+}
+
+impl std::fmt::Display for ElfFile64 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "ElfFile:")?;
+        writeln!(f, "Size of section headers: {}", self.header.shnum)?;
+        writeln!(f, "Section header name index: {}\n", self.header.shstrndx)?;
+
+        for section in self.sections.iter() {
+            writeln!(
+                f,
+                "ElfFile Section: {}",
+                self.get_string(self.header.shstrndx as usize, section.header.name as usize)
+            )?
+        }
+
+        Ok(())
     }
 }
