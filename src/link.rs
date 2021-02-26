@@ -1,3 +1,4 @@
+/*
 use std::collections::HashMap;
 
 use crate::elf::{ElfFile64, ElfFile64Section};
@@ -100,3 +101,4 @@ pub fn link(mut object_files: Vec<ElfFile64>) -> ElfFile64 {
 
     result
 }
+*/

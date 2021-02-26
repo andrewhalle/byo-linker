@@ -1,26 +1,8 @@
 use std::collections::HashMap;
 
-#[derive(Default, Debug)]
-pub struct ElfFile64Header {
-    pub data: u8,
-    pub version: u8,
-    pub os_abi: u8,
-    pub abi_version: u8,
-    pub r#type: u16,
-    pub machine: u16,
-    pub e_version: u32,
-    pub entry: usize,
-    pub phoff: usize,
-    pub shoff: usize,
-    pub flags: u32,
-    pub ehsize: u16,
-    pub phentsize: u16,
-    pub phnum: u16,
-    pub shentsize: u16,
-    pub shnum: u16,
-    pub shstrndx: u16,
-}
+pub const ELF_MAGIC: &[u8] = b"\x7FELF";
 
+/*
 #[derive(Clone, Debug)]
 pub struct ElfFile64SectionHeader {
     pub name: u32,
@@ -52,6 +34,7 @@ pub struct ElfFile64 {
     pub sections: Vec<ElfFile64Section>,
 }
 
+/*
 impl ElfFile64 {
     pub fn get_section_name(&self, idx: usize) -> String {
         let section_names = &self.sections[self.header.shstrndx as usize];
@@ -151,3 +134,5 @@ impl std::fmt::Display for ElfFile64 {
         Ok(())
     }
 }
+*/
+*/

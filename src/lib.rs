@@ -4,4 +4,4 @@ pub mod parse;
 pub mod symbol;
 mod utils;
 
-pub use link::link;
+//pub use link::link;

@@ -1,3 +1,4 @@
+/*
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -46,3 +47,5 @@ fn main() {
 
     println!("{}", result);
 }
+*/
+fn main() {}
