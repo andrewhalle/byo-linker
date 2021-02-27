@@ -4,29 +4,8 @@ use nom::IResult;
 
 use crate::elf::ELF_MAGIC;
 
-#[derive(Default, Debug)]
-struct ElfFile64HeaderRaw {
-    pub data: u8,
-    pub version: u8,
-    pub os_abi: u8,
-    pub abi_version: u8,
-    pub r#type: u16,
-    pub machine: u16,
-    pub e_version: u32,
-    pub entry: usize,
-    pub phoff: usize,
-    pub shoff: usize,
-    pub flags: u32,
-    pub ehsize: u16,
-    pub phentsize: u16,
-    pub phnum: u16,
-    pub shentsize: u16,
-    pub shnum: u16,
-    pub shstrndx: u16,
-}
-
 #[derive(Debug)]
-struct ElfFileIdentifier {
+pub struct ElfFileIdentifier {
     class: u8,
     endianness: nom::number::Endianness,
     version: u8,
@@ -67,4 +46,66 @@ fn elf_endianness(input: &[u8]) -> IResult<&[u8], nom::number::Endianness> {
     };
 
     Ok((input, endianness))
+}
+
+#[derive(Debug)]
+pub struct ElfFile64HeaderRaw {
+    pub identifier: ElfFileIdentifier,
+    pub r#type: u16,
+    pub machine: u16,
+    pub version: u32,
+    pub entry: u64,
+    pub phoff: u64,
+    pub shoff: u64,
+    pub flags: u32,
+    pub ehsize: u16,
+    pub phentsize: u16,
+    pub phnum: u16,
+    pub shentsize: u16,
+    pub shnum: u16,
+    pub shstrndx: u16,
+}
+
+impl ElfFile64HeaderRaw {
+    pub fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, identifier) = ElfFileIdentifier::parse(input)?;
+
+        let parse_u16 = |i| num_parse::u16(identifier.endianness)(i);
+        let parse_u32 = |i| num_parse::u32(identifier.endianness)(i);
+        let parse_u64 = |i| num_parse::u64(identifier.endianness)(i);
+
+        let (input, r#type) = parse_u16(input)?;
+        let (input, machine) = parse_u16(input)?;
+        let (input, version) = parse_u32(input)?;
+        let (input, entry) = parse_u64(input)?;
+        let (input, phoff) = parse_u64(input)?;
+        let (input, shoff) = parse_u64(input)?;
+        let (input, flags) = parse_u32(input)?;
+        let (input, ehsize) = parse_u16(input)?;
+        let (input, phentsize) = parse_u16(input)?;
+        let (input, phnum) = parse_u16(input)?;
+        let (input, shentsize) = parse_u16(input)?;
+        let (input, shnum) = parse_u16(input)?;
+        let (input, shstrndx) = parse_u16(input)?;
+
+        Ok((
+            input,
+            ElfFile64HeaderRaw {
+                identifier,
+                r#type,
+                machine,
+                version,
+                entry,
+                phoff,
+                shoff,
+                flags,
+                ehsize,
+                phentsize,
+                phnum,
+                shentsize,
+                shnum,
+                shstrndx,
+            },
+        ))
+    }
 }
