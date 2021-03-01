@@ -5,7 +5,7 @@ use nom::number::complete as num_parse;
 use nom::Finish;
 use nom::IResult;
 
-use crate::elf::{ElfFile64, ElfFileError, ELF_MAGIC};
+use crate::elf::ELF_MAGIC;
 
 #[derive(Debug)]
 pub struct ElfFileIdentifier {
@@ -161,27 +161,42 @@ impl ElfFile64SectionHeaderRaw {
     }
 }
 
-impl From<nom::error::Error<&[u8]>> for ElfFileError {
-    fn from(_: nom::error::Error<&[u8]>) -> ElfFileError {
-        ElfFileError::ParseError
+#[derive(Debug)]
+pub struct ElfFile64Raw {
+    header: ElfFile64HeaderRaw,
+    section_data: Vec<u8>,
+    section_headers: Vec<ElfFile64SectionHeaderRaw>,
+}
+
+#[derive(Debug)]
+pub struct ElfFile64RawParseError;
+
+impl From<nom::error::Error<&[u8]>> for ElfFile64RawParseError {
+    fn from(_: nom::error::Error<&[u8]>) -> Self {
+        ElfFile64RawParseError
     }
 }
 
-impl ElfFile64 {
-    pub fn parse(input: &[u8]) -> Result<ElfFile64, ElfFileError> {
-        let (_, elf_file) = Finish::finish(all_consuming(ElfFile64::parse_nom)(input))?;
+impl ElfFile64Raw {
+    pub fn parse(input: &[u8]) -> Result<Self, ElfFile64RawParseError> {
+        let (_, elf_file) = Finish::finish(all_consuming(ElfFile64Raw::parse_nom)(input))?;
 
         Ok(elf_file)
     }
 
     fn parse_nom(input: &[u8]) -> IResult<&[u8], Self> {
         let (input, header) = ElfFile64HeaderRaw::parse(input)?;
-        let (input, _) = take(header.shoff - header.ehsize as u64)(input)?;
+        let (input, section_data) = take(header.shoff - header.ehsize as u64)(input)?;
         let (input, section_headers) =
             many1(|i| ElfFile64SectionHeaderRaw::parse(i, header.identifier.endianness))(input)?;
 
-        println!("{:#?}", section_headers);
-
-        Ok((input, ElfFile64))
+        Ok((
+            input,
+            ElfFile64Raw {
+                header,
+                section_data: section_data.to_vec(),
+                section_headers,
+            },
+        ))
     }
 }
