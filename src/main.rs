@@ -3,7 +3,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use ld_rs::parse::ElfFile64HeaderRaw;
+use ld_rs::elf::ElfFile64;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "basic")]
@@ -26,10 +26,9 @@ fn main() {
         file.read_to_end(&mut buf)
             .unwrap_or_else(|_| generic_error("reading"));
 
-        match ElfFile64HeaderRaw::parse(&buf[..]) {
-            Ok((_, header)) => {
+        match ElfFile64::parse(&buf[..]) {
+            Ok(_) => {
                 println!("That is an ELF file!");
-                println!("{:#?}", header);
             }
             Err(_) => {
                 eprintln!("That is not an ELF file!");
