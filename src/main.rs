@@ -27,8 +27,9 @@ fn main() {
             .unwrap_or_else(|_| generic_error("reading"));
 
         match ElfFile64::parse(&buf[..]) {
-            Ok(_) => {
+            Ok(elf) => {
                 println!("That is an ELF file!");
+                println!("{:?}", elf);
             }
             Err(_) => {
                 eprintln!("That is not an ELF file!");

@@ -5,7 +5,7 @@ use nom::number::complete as num_parse;
 use nom::Finish;
 use nom::IResult;
 
-use crate::elf::ELF_MAGIC;
+use super::ELF_MAGIC;
 
 #[derive(Debug)]
 pub struct ElfFileIdentifier {
@@ -163,9 +163,9 @@ impl ElfFile64SectionHeaderRaw {
 
 #[derive(Debug)]
 pub struct ElfFile64Raw {
-    header: ElfFile64HeaderRaw,
-    section_data: Vec<u8>,
-    section_headers: Vec<ElfFile64SectionHeaderRaw>,
+    pub header: ElfFile64HeaderRaw,
+    pub section_data: Vec<u8>,
+    pub section_headers: Vec<ElfFile64SectionHeaderRaw>,
 }
 
 #[derive(Debug)]
