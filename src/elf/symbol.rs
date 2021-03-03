@@ -5,12 +5,12 @@ use super::section::Section64;
 
 #[derive(Debug)]
 pub struct Symbol64 {
-    name: String,
-    info: u8,
-    other: u8,
-    shndx: u16,
-    value: u64,
-    size: u64,
+    pub name: String,
+    pub info: u8,
+    pub other: u8,
+    pub shndx: u16,
+    pub value: u64,
+    pub size: u64,
 }
 
 pub fn get_symbols(

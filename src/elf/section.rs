@@ -157,3 +157,40 @@ pub fn organize_sections(
         index_map,
     )
 }
+
+impl Section64 {
+    pub fn from_hashmap(strtab: HashMap<String, usize>, name: String) -> Self {
+        use std::cmp::Ordering::*;
+        use std::io::Write;
+        use SectionType64::*;
+
+        let mut all: Vec<(String, usize)> = strtab.into_iter().collect();
+        all.sort_by(|(_, idx1), (_, idx2)| {
+            if idx1 < idx2 {
+                Less
+            } else if idx1 > idx2 {
+                Greater
+            } else {
+                Equal
+            }
+        });
+
+        let mut data = vec![0_u8];
+        for (s, _) in all.iter() {
+            data.write_all(s.as_bytes()).expect("could not write");
+            data.write_all(&[0_u8]).expect("could not write");
+        }
+
+        Section64 {
+            name,
+            r#type: Strtab,
+            flags: 0,
+            addr: 0,
+            link: 0,
+            info: 0,
+            addralign: 1,
+            data,
+            relocations: None,
+        }
+    }
+}

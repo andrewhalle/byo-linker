@@ -2,6 +2,7 @@ mod parse;
 mod relocation;
 mod section;
 mod symbol;
+mod write;
 
 use parse::{ElfFile64Raw, ElfFile64RawParseError};
 use relocation::get_relocations;
