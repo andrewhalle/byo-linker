@@ -4,7 +4,8 @@ mod section;
 mod symbol;
 
 use parse::{ElfFile64Raw, ElfFile64RawParseError};
-use section::{get_sections, organize_sections, Section64, SectionType64};
+use relocation::get_relocations;
+use section::{get_sections, organize_sections, Section64};
 use symbol::{get_symbols, Symbol64};
 
 pub const ELF_MAGIC: &[u8] = b"\x7FELF";
@@ -37,9 +38,13 @@ impl From<ElfFile64Raw> for ElfFile64 {
     fn from(raw: ElfFile64Raw) -> Self {
         let sections = get_sections(&raw);
 
-        let (unorganized_sections, symtab, relas, index_map) = organize_sections(sections);
+        let (mut unorganized_sections, symtab, relas, index_map) = organize_sections(sections);
 
         let symbols = get_symbols(&raw, &symtab, &index_map);
+        for rela in relas {
+            let referenced_section = &mut unorganized_sections[rela.info as usize];
+            referenced_section.relocations = Some(get_relocations(&raw, &rela));
+        }
 
         ElfFile64 {
             unorganized_sections,

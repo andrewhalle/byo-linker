@@ -5,6 +5,7 @@ use nom::number::complete as num_parse;
 use nom::Finish;
 use nom::IResult;
 
+use super::relocation::RelocationA64;
 use super::ELF_MAGIC;
 
 #[derive(Debug)]
@@ -247,6 +248,38 @@ impl Symbol64Raw {
             };
 
             Ok((input, symbol))
+        }
+    }
+}
+
+impl RelocationA64 {
+    pub fn parse_many(
+        input: &[u8],
+        endianness: nom::number::Endianness,
+    ) -> Result<Vec<Self>, ElfFile64RawParseError> {
+        let single_parser = RelocationA64::parse_one(endianness);
+        let (_, relas) = Finish::finish(all_consuming(many1(single_parser))(input))?;
+
+        Ok(relas)
+    }
+
+    pub fn parse_one(
+        endianness: nom::number::Endianness,
+    ) -> impl Fn(&[u8]) -> IResult<&[u8], Self> {
+        move |input: &[u8]| {
+            let parse_u64 = |i| num_parse::u64(endianness)(i);
+
+            let (input, offset) = parse_u64(input)?;
+            let (input, info) = parse_u64(input)?;
+            let (input, addend) = parse_u64(input)?;
+
+            let rela = RelocationA64 {
+                offset,
+                info,
+                addend,
+            };
+
+            Ok((input, rela))
         }
     }
 }
