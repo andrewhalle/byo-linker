@@ -4,8 +4,7 @@ mod section;
 mod symbol;
 
 use parse::{ElfFile64Raw, ElfFile64RawParseError};
-use relocation::Relocation64;
-use section::{get_sections, Section64};
+use section::{get_sections, organize_sections, Section64, SectionType64};
 use symbol::{get_symbols, Symbol64};
 
 pub const ELF_MAGIC: &[u8] = b"\x7FELF";
@@ -14,7 +13,6 @@ pub const ELF_MAGIC: &[u8] = b"\x7FELF";
 pub struct ElfFile64 {
     pub unorganized_sections: Vec<Section64>,
     pub symbols: Vec<Symbol64>,
-    pub relocations: Vec<Relocation64>,
 }
 
 #[derive(Debug)]
@@ -38,12 +36,14 @@ impl ElfFile64 {
 impl From<ElfFile64Raw> for ElfFile64 {
     fn from(raw: ElfFile64Raw) -> Self {
         let sections = get_sections(&raw);
-        let symbols = get_symbols(&raw, &sections);
+
+        let (unorganized_sections, symtab, relas, index_map) = organize_sections(sections);
+
+        let symbols = get_symbols(&raw, &symtab, &index_map);
 
         ElfFile64 {
-            unorganized_sections: sections,
+            unorganized_sections,
             symbols,
-            relocations: Vec::new(),
         }
     }
 }

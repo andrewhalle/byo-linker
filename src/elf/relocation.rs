@@ -1,2 +1,2 @@
 #[derive(Debug)]
-pub struct Relocation64;
+pub struct RelocationA64;

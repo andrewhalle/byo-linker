@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use super::parse::{ElfFile64Raw, Symbol64Raw};
-use super::section::{Section64, SectionType64};
+use super::section::Section64;
 
 #[derive(Debug)]
 pub struct Symbol64 {
@@ -11,16 +13,17 @@ pub struct Symbol64 {
     size: u64,
 }
 
-pub fn get_symbols(raw: &ElfFile64Raw, sections: &Vec<Section64>) -> Vec<Symbol64> {
-    let symtab_section = sections
-        .iter()
-        .find(|s| s.r#type == SectionType64::Symtab)
-        .expect("could not find .symtab");
+pub fn get_symbols(
+    raw: &ElfFile64Raw,
+    symtab_section: &Section64,
+    index_map: &HashMap<usize, usize>,
+) -> Vec<Symbol64> {
     let raw_symbols =
         Symbol64Raw::parse_many(&symtab_section.data[..], raw.header.identifier.endianness)
             .expect("could not get symbols");
 
     // XXX duplicated from super::section
+    // move into method on ElfFile64Raw
     let get_name = |idx: usize| {
         let symbol_name_string_table_header = &raw.section_headers[symtab_section.link as usize];
         let offset = (symbol_name_string_table_header.offset - raw.header.ehsize as u64) as usize;
@@ -36,10 +39,24 @@ pub fn get_symbols(raw: &ElfFile64Raw, sections: &Vec<Section64>) -> Vec<Symbol6
             name: get_name(raw_symbol.name as usize),
             info: raw_symbol.info,
             other: raw_symbol.other,
-            shndx: raw_symbol.shndx,
+            shndx: get_new_shndx(raw_symbol.shndx, index_map),
             value: raw_symbol.value,
             size: raw_symbol.size,
         });
     }
     symbols
+}
+
+fn get_new_shndx(old: u16, index_map: &HashMap<usize, usize>) -> u16 {
+    if old == 0xfff1 {
+        // SHN_ABS - not affected by relocation
+        old
+    } else {
+        let old_shndx = old as usize;
+        let new_shndx = index_map
+            .get(&old_shndx)
+            .expect("tried to reference a filtered out section");
+
+        *new_shndx as u16
+    }
 }

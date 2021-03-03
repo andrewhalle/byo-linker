@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use super::parse::ElfFile64Raw;
+use super::relocation::RelocationA64;
 
 #[derive(Debug, PartialEq)]
 pub enum SectionType64 {
@@ -54,6 +57,7 @@ pub struct Section64 {
     pub info: u32,
     pub addralign: u64,
     pub data: Vec<u8>,
+    pub relocations: Option<Vec<RelocationA64>>,
 }
 
 pub fn get_sections(raw: &ElfFile64Raw) -> Vec<Section64> {
@@ -89,8 +93,67 @@ pub fn get_sections(raw: &ElfFile64Raw) -> Vec<Section64> {
             info: section_header.info,
             addralign: section_header.addralign,
             data: get_data(section_header.offset as usize, section_header.size as usize),
+            relocations: None,
         });
     }
 
     sections
+}
+
+// filter out sections that have their data represented elsewhere in the in-memory
+// structure. e.g.
+//   * string tables
+//   * symbol tables
+//   * relocation tables
+// return:
+//   - unorganized_sections
+//   - symtab section
+//   - rela sections
+//   - map from old indexes to new for unorganized sections
+pub fn organize_sections(
+    sections: Vec<Section64>,
+) -> (
+    Vec<Section64>,
+    Section64,
+    Vec<Section64>,
+    HashMap<usize, usize>,
+) {
+    use SectionType64::*;
+
+    let mut unorganized_sections = Vec::new();
+    let mut symtab = None;
+    let mut relas = Vec::new();
+    let mut index_map = HashMap::new();
+
+    let mut offset = 0;
+    for (i, section) in sections.into_iter().enumerate() {
+        match section.r#type {
+            Symtab => symtab = Some(section),
+            Rela => relas.push(section),
+            Strtab => {}
+            _ => {
+                unorganized_sections.push(section);
+                index_map.insert(i, i - offset);
+                continue;
+            }
+        }
+
+        offset += 1;
+    }
+
+    // re-write rela references
+    for rela in relas.iter_mut() {
+        let old_info = rela.info as usize;
+        let new_info = index_map
+            .get(&old_info)
+            .expect("referenced a section that was not explicitly included");
+        rela.info = *new_info as u32;
+    }
+
+    (
+        unorganized_sections,
+        symtab.expect("no .symtab found"),
+        relas,
+        index_map,
+    )
 }
