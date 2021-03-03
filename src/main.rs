@@ -29,7 +29,7 @@ fn main() {
         match ElfFile64::parse(&buf[..]) {
             Ok(elf) => {
                 println!("That is an ELF file!");
-                println!("{:?}", elf);
+                println!("{:#?}", elf.symbols);
             }
             Err(_) => {
                 eprintln!("That is not an ELF file!");

@@ -200,3 +200,53 @@ impl ElfFile64Raw {
         ))
     }
 }
+
+#[derive(Debug)]
+pub struct Symbol64Raw {
+    pub name: u32,
+    pub info: u8,
+    pub other: u8,
+    pub shndx: u16,
+    pub value: u64,
+    pub size: u64,
+}
+
+impl Symbol64Raw {
+    pub fn parse_many(
+        input: &[u8],
+        endianness: nom::number::Endianness,
+    ) -> Result<Vec<Self>, ElfFile64RawParseError> {
+        let single_parser = Symbol64Raw::parse_one(endianness);
+        let (_, symbols) = Finish::finish(all_consuming(many1(single_parser))(input))?;
+
+        Ok(symbols)
+    }
+
+    pub fn parse_one(
+        endianness: nom::number::Endianness,
+    ) -> impl Fn(&[u8]) -> IResult<&[u8], Self> {
+        move |input: &[u8]| {
+            let parse_u16 = |i| num_parse::u16(endianness)(i);
+            let parse_u32 = |i| num_parse::u32(endianness)(i);
+            let parse_u64 = |i| num_parse::u64(endianness)(i);
+
+            let (input, name) = parse_u32(input)?;
+            let (input, info) = num_parse::u8(input)?;
+            let (input, other) = num_parse::u8(input)?;
+            let (input, shndx) = parse_u16(input)?;
+            let (input, value) = parse_u64(input)?;
+            let (input, size) = parse_u64(input)?;
+
+            let symbol = Symbol64Raw {
+                name,
+                info,
+                other,
+                shndx,
+                value,
+                size,
+            };
+
+            Ok((input, symbol))
+        }
+    }
+}
