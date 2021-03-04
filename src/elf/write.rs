@@ -99,9 +99,9 @@ impl ElfFile64 {
         output.write_u64::<T>(0)?;
         output.write_u64::<T>(0)?;
         let shoff = get_section_data_size(sections) as u64;
-        output.write_u64::<T>(shoff)?;
+        output.write_u64::<T>(EHSIZE_64 as u64 + shoff)?;
         output.write_u32::<T>(self.header.flags)?;
-        output.write_u16::<T>(self.header.ehsize)?;
+        output.write_u16::<T>(EHSIZE_64 as u16)?;
         output.write_u16::<T>(self.header.phentsize)?;
         output.write_u16::<T>(0)?;
         output.write_u16::<T>(self.header.shentsize)?;
@@ -170,8 +170,9 @@ fn build_string_table(strings: Vec<String>) -> HashMap<String, usize> {
         if retval.contains_key(&string) {
             continue;
         } else {
-            offset += string.len() + 1;
+            let len = string.len();
             retval.insert(string, offset);
+            offset += len + 1;
         }
     }
 

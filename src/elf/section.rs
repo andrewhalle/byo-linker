@@ -178,6 +178,10 @@ impl Section64 {
 
         let mut data = vec![0_u8];
         for (s, _) in all.iter() {
+            if &s[..] == "" {
+                continue;
+            }
+
             data.write_all(s.as_bytes()).expect("could not write");
             data.write_all(&[0_u8]).expect("could not write");
         }
