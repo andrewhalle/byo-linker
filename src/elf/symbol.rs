@@ -13,6 +13,25 @@ pub struct Symbol64 {
     pub size: u64,
 }
 
+impl Symbol64 {
+    pub fn as_raw<T: byteorder::ByteOrder>(&self, strtab: &HashMap<String, usize>) -> Vec<u8> {
+        use byteorder::WriteBytesExt;
+
+        let mut retval = Vec::new();
+
+        let idx = strtab.get(&self.name).expect("could not get symbol name");
+
+        retval.write_u32::<T>(*idx as u32).expect("could not write");
+        retval.write_u8(self.info).expect("could not write");
+        retval.write_u8(self.other).expect("could not write");
+        retval.write_u16::<T>(self.shndx).expect("could not write");
+        retval.write_u64::<T>(self.value).expect("could not write");
+        retval.write_u64::<T>(self.size).expect("could not write");
+
+        retval
+    }
+}
+
 pub fn get_symbols(
     raw: &ElfFile64Raw,
     symtab_section: &Section64,
@@ -59,4 +78,8 @@ fn get_new_shndx(old: u16, index_map: &HashMap<usize, usize>) -> u16 {
 
         *new_shndx as u16
     }
+}
+
+pub fn sym_bind(sym: &Symbol64) -> u8 {
+    (sym.info) >> 4
 }

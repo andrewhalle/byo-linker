@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use super::parse::ElfFile64Raw;
 use super::relocation::RelocationA64;
+use super::symbol::{sym_bind, Symbol64};
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum SectionType64 {
     Null,
     Progbits,
@@ -159,12 +160,12 @@ pub fn organize_sections(
 }
 
 impl Section64 {
-    pub fn from_hashmap(strtab: HashMap<String, usize>, name: String) -> Self {
+    pub fn from_strtab(strtab: &HashMap<String, usize>, name: String) -> Self {
         use std::cmp::Ordering::*;
         use std::io::Write;
         use SectionType64::*;
 
-        let mut all: Vec<(String, usize)> = strtab.into_iter().collect();
+        let mut all: Vec<(&String, &usize)> = strtab.into_iter().collect();
         all.sort_by(|(_, idx1), (_, idx2)| {
             if idx1 < idx2 {
                 Less
@@ -189,6 +190,68 @@ impl Section64 {
             link: 0,
             info: 0,
             addralign: 1,
+            data,
+            relocations: None,
+        }
+    }
+
+    pub fn from_symtab<T: byteorder::ByteOrder>(
+        symtab: &Vec<Symbol64>,
+        strtab: &HashMap<String, usize>,
+        strtab_idx: usize,
+    ) -> Self {
+        use std::io::Write;
+        use SectionType64::*;
+
+        let mut data = Vec::new();
+        for symbol in symtab {
+            data.write_all(&symbol.as_raw::<T>(strtab)[..])
+                .expect("could not write");
+        }
+
+        let info = symtab
+            .iter()
+            .enumerate()
+            .find(|(_, sym)| sym_bind(*sym) != 0)
+            .expect("no nonlocal symbols")
+            .0 as u32;
+
+        Section64 {
+            name: ".symtab".to_string(),
+            r#type: Symtab,
+            flags: 0,
+            addr: 0,
+            link: strtab_idx as u32,
+            info,
+            addralign: 8,
+            data,
+            relocations: None,
+        }
+    }
+
+    pub fn from_rela<T: byteorder::ByteOrder>(
+        relas: &Vec<RelocationA64>,
+        symtab_idx: usize,
+        section_idx: usize,
+        name: String,
+    ) -> Self {
+        use std::io::Write;
+        use SectionType64::*;
+
+        let mut data = Vec::new();
+        for rela in relas {
+            data.write_all(&rela.as_raw::<T>()[..])
+                .expect("could not write");
+        }
+
+        Section64 {
+            name,
+            r#type: Rela,
+            flags: 0, // set I flag?
+            addr: 0,
+            link: symtab_idx as u32,
+            info: section_idx as u32,
+            addralign: 8,
             data,
             relocations: None,
         }

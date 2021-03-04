@@ -29,7 +29,9 @@ fn main() {
         match ElfFile64::parse(&buf[..]) {
             Ok(elf) => {
                 println!("That is an ELF file!");
-                println!("{:#?}", elf);
+                println!("Writing file...");
+                let mut file = File::create("output.o").expect("could not create file");
+                ElfFile64::write_out(elf, &mut file).expect("could not write file");
             }
             Err(_) => {
                 eprintln!("That is not an ELF file!");
