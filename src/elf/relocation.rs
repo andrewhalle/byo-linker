@@ -1,7 +1,7 @@
 use super::parse::ElfFile64Raw;
 use super::section::Section64;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct RelocationA64 {
     pub offset: u64,
     pub info: u64,

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::parse::{ElfFile64Raw, Symbol64Raw};
 use super::section::Section64;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Symbol64 {
     pub name: String,
     pub info: u8,

@@ -1,99 +1,53 @@
-/*
-use std::collections::HashMap;
-
-use crate::elf::{ElfFile64, ElfFile64Section};
+use crate::elf::section::Section64;
+use crate::elf::symbol::{sym_bind, Symbol64};
+use crate::elf::ElfFile64;
 use crate::utils;
 
 impl ElfFile64 {
-    fn link_symbols(&mut self) {}
-
-    fn link_relocations(&mut self) {}
-
-    fn merge_section(
-        &mut self,
-        section: &ElfFile64Section,
-        other_name: String,
-        existing: &HashMap<String, usize>,
-        original_strtab_size: u32,
-    ) {
-        if !existing.contains_key(&other_name) {
-            let mut new_section = section.clone();
-            new_section.header.name += original_strtab_size as u32;
-            self.sections.push(new_section);
-            self.header.shnum += 1;
-        } else {
-            let existing_section = &mut self.sections[*existing.get(&other_name).unwrap()];
-
-            // TODO: can alignment be different?
-            if existing_section.header.addr_align != section.header.addr_align {
-                panic!(
-                    "{}: cannot merge sections with different alignment",
-                    &other_name
-                );
-            }
-
-            // TODO: can type be different?
-            if existing_section.header.r#type != section.header.r#type {
-                panic!("{}: cannot merge sections with different type", &other_name);
-            }
-
-            // TODO: can flags be different?
-            if existing_section.header.flags != section.header.flags {
-                panic!(
-                    "{}: cannot merge sections with different flags",
-                    &other_name
-                );
-            }
-
-            // TODO: can addr be different?
-            if existing_section.header.addr != section.header.addr {
-                panic!("{}: cannot merge sections with different addr", &other_name);
-            }
-
-            // TODO: can entsize be different?
-            if existing_section.header.entsize != section.header.entsize {
-                panic!(
-                    "{}: cannot merge sections with different entsize",
-                    &other_name
-                );
-            }
-
-            // append data to existing section after padding
-            let align = existing_section.header.addr_align as usize;
-            let existing_len = existing_section.data.len() as usize;
-            if existing_len.trailing_zeros() != align.trailing_zeros() {
-                let new_len = utils::next_aligned_value(existing_len, align);
-                existing_section.data.resize(new_len, 0xff);
-                existing_section.data.append(&mut section.data.clone());
-            }
-
-            existing_section.header.size = existing_section.data.len();
-        }
-    }
-
     fn link(&mut self, other: &ElfFile64) {
-        let existing = self.section_name_map();
+        let mut section_name_map = utils::build_section_name_map(self);
+        let mut symbol_map = utils::build_symbol_name_map(self);
 
-        let original_strtab_size = {
-            let strtab = &self.sections[*existing.get(".strtab").unwrap()];
-
-            utils::next_aligned_value(strtab.header.addr_align as usize, strtab.data.len())
-        };
-
-        for section in other.sections.iter() {
-            let other_name =
-                other.get_string(other.header.shstrndx as usize, section.header.name as usize);
-
-            self.merge_section(section, other_name, &existing, original_strtab_size as u32);
+        for section in other.unorganized_sections.iter() {
+            if section_name_map.contains_key(&section.name) {
+                let existing_idx = section_name_map.get(&section.name).unwrap();
+                let existing = &mut self.unorganized_sections[*existing_idx];
+                existing.merge(&section);
+            } else {
+                section_name_map.insert(section.name.clone(), self.unorganized_sections.len());
+                self.unorganized_sections.push(section.clone());
+            }
         }
 
-        self.link_symbols();
-        self.link_relocations();
+        for symbol in other.symbols.iter() {
+            if symbol.name == "" {
+                continue;
+            }
+
+            if symbol_map.contains_key(&symbol.name) {
+                let existing_idx = symbol_map.get(&symbol.name).unwrap();
+                let existing = &mut self.symbols[*existing_idx];
+                if existing.shndx != 0 && symbol.shndx != 0 {
+                    panic!("symbol defined multiple times");
+                } else if existing.shndx == 0 && symbol.shndx != 0 {
+                    *existing = symbol.clone();
+                }
+            } else {
+                symbol_map.insert(symbol.name.clone(), self.symbols.len());
+                self.symbols.push(symbol.clone());
+            }
+        }
+
+        let symbols = std::mem::take(&mut self.symbols);
+        let (mut local, mut nonlocal): (Vec<Symbol64>, _) =
+            symbols.into_iter().partition(|s| sym_bind(s) == 0);
+        local.append(&mut nonlocal);
+        std::mem::swap(&mut self.symbols, &mut local);
     }
 }
 
 pub fn link(mut object_files: Vec<ElfFile64>) -> ElfFile64 {
-    let mut result = object_files.pop().expect("need object file but not found");
+    let mut result = object_files.remove(0);
 
     for object_file in object_files.iter() {
         result.link(object_file);
@@ -101,4 +55,56 @@ pub fn link(mut object_files: Vec<ElfFile64>) -> ElfFile64 {
 
     result
 }
-*/
+
+impl Section64 {
+    pub fn merge(&mut self, other: &Section64) {
+        // TODO: can alignment be different?
+        if self.addralign != other.addralign {
+            panic!(
+                "{}: cannot merge sections with different alignment",
+                &other.name
+            );
+        }
+
+        // TODO: can type be different?
+        if self.r#type != other.r#type {
+            panic!("{}: cannot merge sections with different type", &other.name);
+        }
+
+        // TODO: can flags be different?
+        if self.flags != other.flags {
+            panic!(
+                "{}: cannot merge sections with different flags",
+                &other.name
+            );
+        }
+
+        // TODO: can addr be different?
+        if self.addr != other.addr {
+            panic!("{}: cannot merge sections with different addr", &other.name);
+        }
+
+        // append data to existing section after padding
+        let align = self.addralign as usize;
+        let existing_len = self.data.len();
+        if existing_len.trailing_zeros() != align.trailing_zeros() {
+            let new_len = utils::next_aligned_value(existing_len, align);
+            self.data.resize(new_len, 0xff);
+            self.data.append(&mut other.data.clone());
+        }
+
+        match &other.relocations {
+            None => {}
+            Some(relas) => {
+                if self.relocations.is_none() {
+                    self.relocations = Some(Vec::new());
+                }
+
+                let existing = self.relocations.as_mut().unwrap();
+                for relocation in relas {
+                    existing.push(relocation.clone());
+                }
+            }
+        }
+    }
+}

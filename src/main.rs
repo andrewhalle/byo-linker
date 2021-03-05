@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 use ld_rs::elf::ElfFile64;
+use ld_rs::link;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "basic")]
@@ -20,6 +21,8 @@ fn generic_error(action: &str) -> ! {
 fn main() {
     let opt = Opt::from_args();
 
+    let mut elfs = Vec::new();
+
     for f in opt.filenames.iter() {
         let mut buf = Vec::new();
         let mut file = File::open(f).unwrap_or_else(|_| generic_error("opening"));
@@ -28,10 +31,7 @@ fn main() {
 
         match ElfFile64::parse(&buf[..]) {
             Ok(elf) => {
-                println!("That is an ELF file!");
-                println!("Writing file...");
-                let mut file = File::create("output.o").expect("could not create file");
-                ElfFile64::write_out(elf, &mut file).expect("could not write file");
+                elfs.push(elf);
             }
             Err(_) => {
                 eprintln!("That is not an ELF file!");
@@ -39,4 +39,7 @@ fn main() {
             }
         };
     }
+
+    let mut file = File::create("output.o").expect("could not create file");
+    ElfFile64::write_out(link(elfs), &mut file).expect("could not write file");
 }

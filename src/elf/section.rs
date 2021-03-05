@@ -48,7 +48,7 @@ impl From<SectionType64> for u32 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Section64 {
     pub name: String,
     pub r#type: SectionType64,

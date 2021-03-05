@@ -1,7 +1,7 @@
 mod parse;
 mod relocation;
-mod section;
-mod symbol;
+pub mod section;
+pub mod symbol;
 mod write;
 
 use parse::{ElfFile64HeaderRaw, ElfFile64Raw, ElfFile64RawParseError};
