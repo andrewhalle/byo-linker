@@ -277,6 +277,7 @@ impl RelocationA64 {
                 offset,
                 info,
                 addend,
+                merged: false,
             };
 
             Ok((input, rela))

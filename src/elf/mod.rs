@@ -1,5 +1,5 @@
 mod parse;
-mod relocation;
+pub mod relocation;
 pub mod section;
 pub mod symbol;
 mod write;

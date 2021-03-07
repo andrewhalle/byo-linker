@@ -6,6 +6,7 @@ pub struct RelocationA64 {
     pub offset: u64,
     pub info: u64,
     pub addend: u64,
+    pub merged: bool, // XXX remove me
 }
 
 impl RelocationA64 {
@@ -18,6 +19,18 @@ impl RelocationA64 {
         retval.write_u64::<T>(self.addend).expect("could not write");
 
         retval
+    }
+
+    pub fn get_sym(&self) -> usize {
+        (self.info >> 32) as usize
+    }
+
+    pub fn get_type(&self) -> usize {
+        (self.info & 0xffffffff) as usize
+    }
+
+    pub fn set_info(&mut self, sym: usize, r#type: usize) {
+        self.info = ((sym << 32) + (r#type)) as u64;
     }
 }
 
