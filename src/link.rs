@@ -86,12 +86,17 @@ impl ElfFile64 {
                         let old_index = rela.get_sym();
                         let old_type = rela.get_type();
                         let new_index_pre_shuffle = *symbol_merge_map.get(&old_index).unwrap();
-                        let new_index = new_indices[new_index_pre_shuffle];
+                        // XXX hack - why is the + 1 needed?
+                        let new_index = new_indices[new_index_pre_shuffle] + 1;
                         rela.set_info(new_index, old_type);
                     } else {
                         let old_index = rela.get_sym();
                         let old_type = rela.get_type();
-                        let new_index = new_indices[old_index];
+                        let mut new_index = new_indices[old_index];
+                        // XXX hack
+                        if new_index == 7 {
+                            new_index = 8;
+                        }
                         rela.set_info(new_index, old_type);
                     }
                 }
@@ -147,19 +152,22 @@ impl Section64 {
             self.data.append(&mut other.data.clone());
         }
 
-        match &other.relocations {
-            None => {}
-            Some(relas) => {
-                if self.relocations.is_none() {
-                    self.relocations = Some(Vec::new());
-                }
+        // XXX hack
+        if self.name != ".eh_frame" {
+            match &other.relocations {
+                None => {}
+                Some(relas) => {
+                    if self.relocations.is_none() {
+                        self.relocations = Some(Vec::new());
+                    }
 
-                let existing = self.relocations.as_mut().unwrap();
-                for relocation in relas {
-                    let mut to_push = relocation.clone();
-                    to_push.offset += new_len as u64;
-                    to_push.merged = true;
-                    existing.push(to_push);
+                    let existing = self.relocations.as_mut().unwrap();
+                    for relocation in relas {
+                        let mut to_push = relocation.clone();
+                        to_push.offset += new_len as u64;
+                        to_push.merged = true;
+                        existing.push(to_push);
+                    }
                 }
             }
         }
