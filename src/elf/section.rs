@@ -11,6 +11,7 @@ pub enum SectionType64 {
     Symtab,
     Strtab,
     Rela,
+    Nobits,
     UnwindX64,
     Loos,
 }
@@ -25,6 +26,7 @@ impl From<u32> for SectionType64 {
             2 => Symtab,
             3 => Strtab,
             4 => Rela,
+            8 => Nobits,
             1879048193 => UnwindX64,
             1879002115 => Loos,
             _ => unimplemented!(),
@@ -42,6 +44,7 @@ impl From<SectionType64> for u32 {
             Symtab => 2,
             Strtab => 3,
             Rela => 4,
+            Nobits => 8,
             UnwindX64 => 1879048193,
             Loos => 1879002115,
         }
