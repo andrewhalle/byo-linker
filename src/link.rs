@@ -70,10 +70,10 @@ impl ElfFile64 {
             .partition(|(_, s)| sym_bind(s) == 0);
         local.append(&mut nonlocal);
 
-        let mut new_indices = Vec::new();
+        let mut new_indices = vec![0; local.len()];
         let mut symbols = Vec::new();
-        for (i, s) in local.into_iter() {
-            new_indices.push(i);
+        for (new_index, (old_index, s)) in local.into_iter().enumerate() {
+            new_indices[old_index] = new_index;
             symbols.push(s);
         }
 
@@ -86,17 +86,12 @@ impl ElfFile64 {
                         let old_index = rela.get_sym();
                         let old_type = rela.get_type();
                         let new_index_pre_shuffle = *symbol_merge_map.get(&old_index).unwrap();
-                        // XXX hack - why is the + 1 needed?
-                        let new_index = new_indices[new_index_pre_shuffle] + 1;
+                        let new_index = new_indices[new_index_pre_shuffle];
                         rela.set_info(new_index, old_type);
                     } else {
                         let old_index = rela.get_sym();
                         let old_type = rela.get_type();
-                        let mut new_index = new_indices[old_index];
-                        // XXX hack
-                        if new_index == 7 {
-                            new_index = 8;
-                        }
+                        let new_index = new_indices[old_index];
                         rela.set_info(new_index, old_type);
                     }
                 }
@@ -166,10 +161,7 @@ impl Section64 {
                 let existing = self.relocations.as_mut().unwrap();
                 for relocation in relas {
                     let mut to_push = relocation.clone();
-                    dbg!(&to_push.offset);
-                    dbg!(&new_len);
                     to_push.offset += new_len as u64;
-                    dbg!(&to_push.offset);
                     to_push.merged = true;
                     existing.push(to_push);
                 }
