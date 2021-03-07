@@ -146,28 +146,32 @@ impl Section64 {
         // append data to existing section after padding
         let align = self.addralign as usize;
         let existing_len = self.data.len();
-        let new_len = utils::next_aligned_value(existing_len, align);
-        if existing_len.trailing_zeros() != align.trailing_zeros() {
+        let new_len = if existing_len.trailing_zeros() != align.trailing_zeros() {
+            let new_len = utils::next_aligned_value(existing_len, align);
             self.data.resize(new_len, 0xff);
-            self.data.append(&mut other.data.clone());
-        }
 
-        // XXX hack
-        if self.name != ".eh_frame" {
-            match &other.relocations {
-                None => {}
-                Some(relas) => {
-                    if self.relocations.is_none() {
-                        self.relocations = Some(Vec::new());
-                    }
+            new_len
+        } else {
+            existing_len
+        };
+        self.data.append(&mut other.data.clone());
 
-                    let existing = self.relocations.as_mut().unwrap();
-                    for relocation in relas {
-                        let mut to_push = relocation.clone();
-                        to_push.offset += new_len as u64;
-                        to_push.merged = true;
-                        existing.push(to_push);
-                    }
+        match &other.relocations {
+            None => {}
+            Some(relas) => {
+                if self.relocations.is_none() {
+                    self.relocations = Some(Vec::new());
+                }
+
+                let existing = self.relocations.as_mut().unwrap();
+                for relocation in relas {
+                    let mut to_push = relocation.clone();
+                    dbg!(&to_push.offset);
+                    dbg!(&new_len);
+                    to_push.offset += new_len as u64;
+                    dbg!(&to_push.offset);
+                    to_push.merged = true;
+                    existing.push(to_push);
                 }
             }
         }
