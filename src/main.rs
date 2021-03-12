@@ -40,6 +40,12 @@ fn main() {
         };
     }
 
+    let result = link(elfs);
+
+    let mut file = File::create("main").expect("could not create file");
+    ElfFile64::write_out(result, &mut file).expect("could not write file");
+    /*
     let mut file = File::create("output.o").expect("could not create file");
     ElfFile64::write_out(link(elfs), &mut file).expect("could not write file");
+    */
 }

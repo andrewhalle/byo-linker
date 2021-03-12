@@ -1,10 +1,12 @@
 mod parse;
+pub mod program_header;
 pub mod relocation;
 pub mod section;
 pub mod symbol;
 mod write;
 
 use parse::{ElfFile64HeaderRaw, ElfFile64Raw, ElfFile64RawParseError};
+use program_header::ProgramHeader64;
 use relocation::get_relocations;
 use section::{get_sections, organize_sections, Section64};
 use symbol::{get_symbols, Symbol64};
@@ -17,6 +19,7 @@ pub struct ElfFile64 {
     pub header: ElfFile64HeaderRaw,
     pub unorganized_sections: Vec<Section64>,
     pub symbols: Vec<Symbol64>,
+    pub program_headers: Vec<ProgramHeader64>,
 }
 
 #[derive(Debug)]
@@ -48,11 +51,13 @@ impl From<ElfFile64Raw> for ElfFile64 {
             let referenced_section = &mut unorganized_sections[rela.info as usize];
             referenced_section.relocations = Some(get_relocations(&raw, &rela));
         }
+        let program_headers = Vec::new();
 
         ElfFile64 {
             header: raw.header,
             unorganized_sections,
             symbols,
+            program_headers,
         }
     }
 }

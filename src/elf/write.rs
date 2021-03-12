@@ -68,6 +68,7 @@ impl ElfFile64 {
 
         // write file
         file.write_header::<_, T>(&mut output, &sections)?;
+        file.write_program_headers::<_, T>(&mut output);
         file.write_section_data(&mut output, &sections)?;
         file.write_section_headers::<_, T>(&mut output, &sections, &shstrtab)?;
 
@@ -96,18 +97,27 @@ impl ElfFile64 {
         output.write_u16::<T>(self.header.r#type)?;
         output.write_u16::<T>(self.header.machine)?;
         output.write_u32::<T>(self.header.version)?;
-        output.write_u64::<T>(0)?;
-        output.write_u64::<T>(0)?;
+        // XXX default entry address is top of .text?
+        // 0x400000 base address because that's size of kernel reserved space?
+        output.write_u64::<T>(0x401000)?;
+        output.write_u64::<T>(EHSIZE_64 as u64)?;
         let shoff = get_section_data_size(sections) as u64;
         output.write_u64::<T>(EHSIZE_64 as u64 + shoff)?;
         output.write_u32::<T>(self.header.flags)?;
         output.write_u16::<T>(EHSIZE_64 as u16)?;
         output.write_u16::<T>(self.header.phentsize)?;
-        output.write_u16::<T>(0)?;
+        output.write_u16::<T>(self.program_headers.len() as u16)?;
         output.write_u16::<T>(self.header.shentsize)?;
         output.write_u16::<T>(sections.len() as u16)?;
         output.write_u16::<T>((sections.len() - 1) as u16)?;
 
+        Ok(())
+    }
+
+    fn write_program_headers<W: io::Write, T: byteorder::ByteOrder>(
+        &self,
+        output: &mut W,
+    ) -> io::Result<()> {
         Ok(())
     }
 
