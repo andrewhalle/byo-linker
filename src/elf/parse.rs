@@ -187,12 +187,25 @@ impl ElfFile64Raw {
 
     fn parse_nom(input: &[u8]) -> IResult<&[u8], Self> {
         let (input, header) = ElfFile64HeaderRaw::parse(input)?;
-        // XXX section data doesn't have to be in the middle, it can be at the end
-        // need to account for this by checking shoff and phoff to see where the remaining data in
-        // the file is
-        let (input, section_data) = take(header.shoff - header.ehsize as u64)(input)?;
-        let (input, section_headers) =
-            many1(|i| ElfFile64SectionHeaderRaw::parse(i, header.identifier.endianness))(input)?;
+
+        let (input, section_headers, section_data) = if header.shoff > header.ehsize as u64 {
+            let (input, section_data) = take(header.shoff - header.ehsize as u64)(input)?;
+            let (input, section_headers) =
+                many1(|i| ElfFile64SectionHeaderRaw::parse(i, header.identifier.endianness))(
+                    input,
+                )?;
+
+            (input, section_headers, section_data)
+        } else {
+            let (input, section_header_data) = take(header.shentsize * header.shnum)(input)?;
+            let (_, section_headers) =
+                many1(|i| ElfFile64SectionHeaderRaw::parse(i, header.identifier.endianness))(
+                    section_header_data,
+                )?;
+            let (input, section_data) = take(input.len())(input)?;
+
+            (input, section_headers, section_data)
+        };
 
         Ok((
             input,

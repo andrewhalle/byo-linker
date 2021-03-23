@@ -67,6 +67,9 @@ pub struct Section64 {
 pub fn get_sections(raw: &ElfFile64Raw) -> Vec<Section64> {
     let get_name = |idx: usize| {
         let section_name_string_table_header = &raw.section_headers[raw.header.shstrndx as usize];
+        // XXX this assumes that the section data is after the header and before the section
+        // headers, it's also possible for the section headers to be first, in which case we need
+        // to also subtract the section header data size
         let offset = (section_name_string_table_header.offset - raw.header.ehsize as u64) as usize;
         let start_of_name = &raw.section_data[offset + idx] as *const u8 as *const i8;
         let name = unsafe { std::ffi::CStr::from_ptr(start_of_name) };
