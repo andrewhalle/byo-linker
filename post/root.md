@@ -11,9 +11,8 @@ In this series of posts, I'd like to build up a simple but functional linker in
 Rust, mostly just as an exercise to see what goes into a real linker. Some
 high-level goals/requirements for this linker, it needs to:
 
-  * produce an executable from object files produced from programs written in C
+  * only handle relocatable files
   * work on Linux only
-  * support static and shared libraries
 
 In particular this means that I do not concern myself with name-mangling or
 with object file formats other than the ELF object format.
@@ -66,6 +65,3 @@ Without further ado, here are the posts.
 1. [Parsing ELF files](https://andrewhalle.github.io/build-your-own/linker/1)
 2. [Serializing ELF files](https://andrewhalle.github.io/build-your-own/linker/2)
 3. [Simple linking - creating a relocatable file](https://andrewhalle.github.io/build-your-own/linker/3)
-4. [Intermediate linking - including static libraries](https://andrewhalle.github.io/build-your-own/linker/4)
-5. [Advanced linking - including shared libraries](https://andrewhalle.github.io/build-your-own/linker/5)
-6. [Putting it all together - creating an executable](https://andrewhalle.github.io/build-your-own/linker/6)
