@@ -21,6 +21,7 @@ actually know what they're talking about:
 2. [Linkers - Ian Lance Taylor](https://www.airs.com/blog/archives/38)
 3. [Linkers and Loaders - John R. Levine](https://www.goodreads.com/book/show/1103509.Linkers_and_Loaders)
 4. [The missing link](https://www.cl.cam.ac.uk/~pes20/rems/papers/oopsla-elf-linking-2016.pdf)
+5. [Toolchains.net](https://www.toolchains.net/)
 
 With that out of the way, here's an overview of interesting bits of the project.
 
